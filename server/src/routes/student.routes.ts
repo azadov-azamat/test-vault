@@ -8,6 +8,7 @@ import {
   startExam,
   submitAnswer,
   finishExam,
+  getSessionResult,
 } from '../controllers/test.controller';
 
 const router = Router();
@@ -35,5 +36,6 @@ router.post(
 );
 
 router.post('/sessions/:id/finish', finishExam);
+router.get('/sessions/:id/result', getSessionResult);
 
 export default router;

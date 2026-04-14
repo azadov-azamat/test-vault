@@ -2,7 +2,15 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { authenticateToken, requireTeacher } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { previewExam, createExam, getExams, getExamById, getExamResults } from '../controllers/exam.controller';
+import {
+  previewExam,
+  createExam,
+  updateExam,
+  deleteExam,
+  getExams,
+  getExamById,
+  getExamResults,
+} from '../controllers/exam.controller';
 import {
   createStudent,
   getStudents,
@@ -20,6 +28,8 @@ router.post('/exams/preview', upload.single('file') as any, previewExam as any);
 router.post('/exams', createExam);
 router.get('/exams', getExams);
 router.get('/exams/:id', getExamById);
+router.patch('/exams/:id', updateExam);
+router.delete('/exams/:id', deleteExam);
 router.get('/exams/:id/results', getExamResults);
 
 router.post(

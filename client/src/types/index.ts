@@ -21,6 +21,10 @@ export interface Exam {
   title: string;
   variantCount: number;
   originalFilename?: string | null;
+  startsAt?: string | null;
+  durationMinutes?: number | null;
+  minutesPerQuestion?: number | null;
+  isFrozen?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -60,6 +64,8 @@ export interface CreatedStudent {
 export interface Variant {
   variantNumber: number;
   questionCount: number;
+  completedSessionId?: string | null;
+  hasActiveSession?: boolean;
 }
 
 export interface ExamResult {
@@ -136,9 +142,26 @@ export interface CreateExamResponse {
 export interface StartExamResponse {
   sessionId: string;
   questions: Omit<Question, "correctAnswer" | "examId" | "variantNumber">[];
+  answers?: Array<{ questionId: string; selectedAnswer: "a" | "b" | "c" | "d" }>;
+  startedAt?: string;
+  endsAt?: string | null;
+  durationMinutes?: number | null;
 }
 
 export interface FinishResult {
+  sessionId?: string;
+  totalQuestions: number;
+  correct: number;
+  incorrect: number;
+  percentage: number;
+}
+
+export interface SessionResult {
+  sessionId: string;
+  exam: { id: string; title: string };
+  variantNumber: number;
+  startedAt: string;
+  finishedAt: string | null;
   totalQuestions: number;
   correct: number;
   incorrect: number;

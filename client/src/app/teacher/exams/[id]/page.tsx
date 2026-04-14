@@ -1,24 +1,70 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BarChart3, CheckCircle2, FileText } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, BarChart3, CheckCircle2, FileText, Clock, CalendarClock, Lock, Unlock, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getExam } from "@/api/exams";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getExam, updateExamSchedule } from "@/api/exams";
+import { useToast } from "@/hooks/use-toast";
+import { extractError } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Question } from "@/types";
 
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 export default function ExamDetailsPage({ params }: { params: { id: string } }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const { data, isLoading } = useQuery({
     queryKey: ["exam", params.id],
     queryFn: () => getExam(params.id),
   });
+
+  const [startsAt, setStartsAt] = useState<string>("");
+  const [duration, setDuration] = useState<string>("");
+
+  useEffect(() => {
+    if (!data) return;
+    setStartsAt(toLocalInput(data.startsAt));
+    setDuration(data.durationMinutes ? String(data.durationMinutes) : "");
+  }, [data?.id, data?.startsAt, data?.durationMinutes]);
+
+  const updateM = useMutation({
+    mutationFn: (payload: { startsAt?: string | null; durationMinutes?: number | null; isFrozen?: boolean }) =>
+      updateExamSchedule(params.id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["exam", params.id] });
+      qc.invalidateQueries({ queryKey: ["exams"] });
+      toast({ title: "Imtihon yangilandi" });
+    },
+    onError: (e) => toast({ variant: "destructive", title: "Xatolik", description: extractError(e) }),
+  });
+
+  const saveSchedule = () => {
+    updateM.mutate({
+      startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+      durationMinutes: duration === "" ? null : Number(duration),
+    });
+  };
+
+  const toggleFreeze = () => {
+    updateM.mutate({ isFrozen: !data?.isFrozen });
+  };
 
   const variants = useMemo(() => {
     if (!data) return [];
@@ -45,7 +91,10 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
         </Button>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{data?.title || "Yuklanmoqda..."}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{data?.title || "Yuklanmoqda..."}</h1>
+              {data?.isFrozen && <Badge variant="destructive">Muzlatilgan</Badge>}
+            </div>
             {data && (
               <p className="text-sm text-muted-foreground">
                 {data.variantCount} variant • {data.questions?.length ?? 0} savol
@@ -54,13 +103,71 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
               </p>
             )}
           </div>
-          <Button asChild variant="outline">
-            <Link href={`/teacher/exams/${params.id}/results`}>
-              <BarChart3 className="h-4 w-4" /> Natijalar
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant={data?.isFrozen ? "default" : "outline"}
+              onClick={toggleFreeze}
+              disabled={updateM.isPending || !data}
+            >
+              {data?.isFrozen ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              {data?.isFrozen ? "Ochish" : "Muzlatish"}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/teacher/exams/${params.id}/results`}>
+                <BarChart3 className="h-4 w-4" /> Natijalar
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
+
+      {data?.isFrozen && (
+        <Alert variant="destructive">
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Imtihon muzlatilgan</AlertTitle>
+          <AlertDescription>O'quvchilar hozir bu imtihonga kira olmaydi va javob bera olmaydi</AlertDescription>
+        </Alert>
+      )}
+
+      {data && !isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-4 w-4" /> Jadval va vaqt
+            </CardTitle>
+            <CardDescription>Boshlanish vaqti va umumiy davomiylikni sozlang</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1">
+                  <CalendarClock className="h-3.5 w-3.5" /> Boshlanish vaqti
+                </Label>
+                <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+                <p className="text-xs text-muted-foreground">
+                  {data.startsAt ? `Hozir: ${formatDate(data.startsAt)}` : "Cheklovsiz — istalgan vaqt boshlash mumkin"}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Umumiy vaqt (daqiqa)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder="Vaqt cheklovisiz"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {data.durationMinutes ? `Hozir: ${data.durationMinutes} daqiqa` : "Cheklovsiz"}
+                </p>
+              </div>
+            </div>
+            <Button onClick={saveSchedule} disabled={updateM.isPending}>
+              <Save className="h-4 w-4" /> {updateM.isPending ? "Saqlanmoqda..." : "Jadvalni saqlash"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading && (
         <div className="space-y-2">

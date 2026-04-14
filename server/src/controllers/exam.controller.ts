@@ -92,11 +92,22 @@ interface VariantPayload {
 export async function createExam(req: AuthRequest, res: Response) {
   const lang = getLang(req.headers['accept-language']);
   try {
-    const { title, variantCount, originalFilename, variants } = req.body as {
+    const {
+      title,
+      variantCount,
+      originalFilename,
+      variants,
+      startsAt,
+      durationMinutes,
+      minutesPerQuestion,
+    } = req.body as {
       title?: string;
       variantCount?: number;
       originalFilename?: string;
       variants?: VariantPayload[];
+      startsAt?: string | null;
+      durationMinutes?: number | null;
+      minutesPerQuestion?: number | null;
     };
 
     const count = Number(variantCount);
@@ -115,11 +126,19 @@ export async function createExam(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: "Savollar topilmadi" });
     }
 
+    const parsedStartsAt = startsAt ? new Date(startsAt) : null;
+    if (startsAt && isNaN(parsedStartsAt!.getTime())) {
+      return res.status(400).json({ error: "Boshlanish vaqti noto'g'ri" });
+    }
+
     const exam = await Exam.create({
       teacherId: req.userId!,
       title: title.trim(),
       variantCount: count,
       originalFilename: originalFilename || '',
+      startsAt: parsedStartsAt,
+      durationMinutes: durationMinutes && durationMinutes > 0 ? Math.floor(durationMinutes) : null,
+      minutesPerQuestion: minutesPerQuestion && minutesPerQuestion > 0 ? Math.floor(minutesPerQuestion) : null,
     });
 
     const rows = variants.flatMap((v) =>
@@ -149,6 +168,71 @@ export async function createExam(req: AuthRequest, res: Response) {
     });
   } catch (error) {
     console.error('Exam yaratishda xatolik:', error);
+    res.status(500).json({ error: t('error.server', lang) });
+  }
+}
+
+export async function updateExam(req: AuthRequest, res: Response) {
+  const lang = getLang(req.headers['accept-language']);
+  try {
+    const exam = await Exam.findOne({
+      where: { id: req.params.id, teacherId: req.userId! },
+    });
+    if (!exam) {
+      return res.status(404).json({ error: t('exam.not_found', lang) });
+    }
+
+    const { title, startsAt, durationMinutes, isFrozen } = req.body as {
+      title?: string;
+      startsAt?: string | null;
+      durationMinutes?: number | null;
+      isFrozen?: boolean;
+    };
+
+    if (typeof title === 'string' && title.trim()) exam.title = title.trim();
+
+    if (startsAt !== undefined) {
+      if (startsAt === null || startsAt === '') {
+        exam.startsAt = null;
+      } else {
+        const d = new Date(startsAt);
+        if (isNaN(d.getTime())) {
+          return res.status(400).json({ error: "Boshlanish vaqti noto'g'ri" });
+        }
+        exam.startsAt = d;
+      }
+    }
+
+    if (durationMinutes !== undefined) {
+      exam.durationMinutes =
+        durationMinutes && durationMinutes > 0 ? Math.floor(durationMinutes) : null;
+    }
+
+    if (typeof isFrozen === 'boolean') {
+      exam.isFrozen = isFrozen;
+    }
+
+    await exam.save();
+    res.json({ exam });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: t('error.server', lang) });
+  }
+}
+
+export async function deleteExam(req: AuthRequest, res: Response) {
+  const lang = getLang(req.headers['accept-language']);
+  try {
+    const exam = await Exam.findOne({
+      where: { id: req.params.id, teacherId: req.userId! },
+    });
+    if (!exam) {
+      return res.status(404).json({ error: t('exam.not_found', lang) });
+    }
+    await exam.destroy();
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: t('error.server', lang) });
   }
 }

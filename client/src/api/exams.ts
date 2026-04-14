@@ -41,9 +41,29 @@ export async function createExam(payload: {
   variantCount: number;
   originalFilename: string;
   variants: PreviewVariant[];
+  startsAt?: string | null;
+  durationMinutes?: number | null;
+  minutesPerQuestion?: number | null;
 }) {
   const { data } = await api.post<CreateExamResponse>("/teacher/exams", payload);
   return data.exam;
+}
+
+export async function updateExamSchedule(
+  id: string,
+  payload: {
+    title?: string;
+    startsAt?: string | null;
+    durationMinutes?: number | null;
+    isFrozen?: boolean;
+  }
+) {
+  const { data } = await api.patch<{ exam: Exam }>(`/teacher/exams/${id}`, payload);
+  return data.exam;
+}
+
+export async function deleteExam(id: string) {
+  await api.delete(`/teacher/exams/${id}`);
 }
 
 export async function getStudentExams() {
@@ -53,7 +73,13 @@ export async function getStudentExams() {
 
 export async function getVariants(examId: string) {
   const { data } = await api.get<{
-    exam: { id: string; title: string };
+    exam: {
+      id: string;
+      title: string;
+      startsAt: string | null;
+      durationMinutes: number | null;
+      isFrozen: boolean;
+    };
     variants: Variant[];
   }>(`/student/exams/${examId}/variants`);
   return data;

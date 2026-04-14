@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { StartExamResponse, FinishResult } from "@/types";
+import type { StartExamResponse, FinishResult, SessionResult } from "@/types";
 
 export async function startExam(examId: string, variantNumber: number) {
   const { data } = await api.post<StartExamResponse>(`/student/exams/${examId}/start`, {
@@ -23,6 +23,13 @@ export async function submitAnswer(
 export async function finishExam(sessionId: string) {
   const { data } = await api.post<{ result: FinishResult }>(
     `/student/sessions/${sessionId}/finish`
+  );
+  return data.result;
+}
+
+export async function getSessionResult(sessionId: string) {
+  const { data } = await api.get<{ result: SessionResult }>(
+    `/student/sessions/${sessionId}/result`
   );
   return data.result;
 }

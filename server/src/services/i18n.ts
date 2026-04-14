@@ -118,6 +118,22 @@ const messages: Record<string, Record<Lang, string>> = {
     uz: 'Bu savolga allaqachon javob berilgan',
     ru: 'На этот вопрос уже дан ответ',
   },
+  'session.expired': {
+    uz: "Imtihon vaqti tugadi",
+    ru: 'Время экзамена истекло',
+  },
+  'session.variant_completed': {
+    uz: "Siz bu variantni allaqachon topshirgansiz",
+    ru: 'Вы уже завершили этот вариант',
+  },
+  'exam.frozen': {
+    uz: "Imtihon o'qituvchi tomonidan muzlatilgan",
+    ru: 'Экзамен заморожен преподавателем',
+  },
+  'exam.not_started': {
+    uz: "Imtihon hali boshlanmagan",
+    ru: 'Экзамен ещё не начался',
+  },
 
   // General
   'error.server': {

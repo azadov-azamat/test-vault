@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, ArrowLeft, FileCheck2, CheckCircle2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Upload, ArrowLeft, FileCheck2, CheckCircle2, Pencil, Trash2, AlertTriangle, Clock, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,12 +30,16 @@ export default function NewExamPage() {
   const [variantCount, setVariantCount] = useState<2 | 4 | 6>(2);
   const [preview, setPreview] = useState<ExamPreview | null>(null);
   const [title, setTitle] = useState("");
+  const [startsAt, setStartsAt] = useState<string>("");
+  const [minutesPerQuestion, setMinutesPerQuestion] = useState<number>(1);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
 
   const previewMutation = useMutation({
     mutationFn: (payload: { file: File; variantCount: number }) => previewExamFile(payload),
     onSuccess: (data) => {
       setPreview(data);
       setTitle(data.suggestedTitle);
+      setDurationMinutes(data.questionsPerVariant * minutesPerQuestion);
       setStep("review");
     },
     onError: (e) => toast({ variant: "destructive", title: "Tahlil xatoligi", description: extractError(e) }),
@@ -48,6 +52,9 @@ export default function NewExamPage() {
         variantCount: preview!.variantCount,
         originalFilename: preview!.originalFilename,
         variants: preview!.variants,
+        startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+        durationMinutes: durationMinutes ?? null,
+        minutesPerQuestion: minutesPerQuestion || null,
       }),
     onSuccess: (exam) => {
       qc.invalidateQueries({ queryKey: ["exams"] });
@@ -88,6 +95,15 @@ export default function NewExamPage() {
           onPreviewChange={setPreview}
           title={title}
           onTitleChange={setTitle}
+          startsAt={startsAt}
+          onStartsAtChange={setStartsAt}
+          minutesPerQuestion={minutesPerQuestion}
+          onMinutesPerQuestionChange={(n) => {
+            setMinutesPerQuestion(n);
+            setDurationMinutes(preview.questionsPerVariant * n);
+          }}
+          durationMinutes={durationMinutes}
+          onDurationMinutesChange={setDurationMinutes}
           onBack={() => setStep("upload")}
           onConfirm={() => createMutation.mutate()}
           loading={createMutation.isPending}
@@ -195,12 +211,22 @@ function UploadStep({
 }
 
 function ReviewStep({
-  preview, onPreviewChange, title, onTitleChange, onBack, onConfirm, loading,
+  preview, onPreviewChange, title, onTitleChange,
+  startsAt, onStartsAtChange,
+  minutesPerQuestion, onMinutesPerQuestionChange,
+  durationMinutes, onDurationMinutesChange,
+  onBack, onConfirm, loading,
 }: {
   preview: ExamPreview;
   onPreviewChange: (p: ExamPreview) => void;
   title: string;
   onTitleChange: (v: string) => void;
+  startsAt: string;
+  onStartsAtChange: (v: string) => void;
+  minutesPerQuestion: number;
+  onMinutesPerQuestionChange: (n: number) => void;
+  durationMinutes: number | null;
+  onDurationMinutesChange: (n: number | null) => void;
   onBack: () => void;
   onConfirm: () => void;
   loading: boolean;
@@ -273,6 +299,63 @@ function ReviewStep({
         </CardHeader>
         <CardContent>
           <Input value={title} onChange={(e) => onTitleChange(e.target.value)} placeholder="Imtihon nomi" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Vaqt va jadval
+          </CardTitle>
+          <CardDescription>
+            Har savolga necha daqiqa ketishini belgilang — umumiy vaqt avtomatik hisoblanadi
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label>Har savolga (daqiqa)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                value={minutesPerQuestion}
+                onChange={(e) => onMinutesPerQuestionChange(Number(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {preview.questionsPerVariant} savol × {minutesPerQuestion} daqiqa
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Umumiy vaqt (daqiqa)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={durationMinutes ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onDurationMinutesChange(v === "" ? null : Number(v));
+                }}
+                placeholder="Vaqt cheklovisiz"
+              />
+              <p className="text-xs text-muted-foreground">
+                Bo'sh qolsa vaqt cheklovisiz bo'ladi
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1">
+                <CalendarClock className="h-3.5 w-3.5" /> Boshlanish vaqti
+              </Label>
+              <Input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(e) => onStartsAtChange(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Bo'sh qolsa darhol boshlash mumkin
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

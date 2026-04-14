@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, CheckCircle2, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Trophy, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -39,6 +39,8 @@ export default function TakeExamPage({ params }: { params: { id: string; session
   const [answers, setAnswers] = useState<Record<string, Choice>>({});
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [result, setResult] = useState<FinishResult | null>(null);
+  const [endsAt, setEndsAt] = useState<Date | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
     const raw = sessionStorage.getItem(`session:${params.sessionId}`);
@@ -51,8 +53,25 @@ export default function TakeExamPage({ params }: { params: { id: string; session
       router.replace(`/student/exams/${params.id}`);
       return;
     }
-    setQuestions(JSON.parse(raw) as Q[]);
+    const parsed = JSON.parse(raw) as {
+      questions: Q[];
+      answers?: Array<{ questionId: string; selectedAnswer: Choice }>;
+      endsAt?: string | null;
+    };
+    setQuestions(parsed.questions);
+    if (parsed.answers?.length) {
+      const map: Record<string, Choice> = {};
+      for (const a of parsed.answers) map[a.questionId] = a.selectedAnswer;
+      setAnswers(map);
+    }
+    if (parsed.endsAt) setEndsAt(new Date(parsed.endsAt));
   }, [params.sessionId, params.id, router, toast]);
+
+  useEffect(() => {
+    if (!endsAt) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [endsAt]);
 
   const submitMut = useMutation({
     mutationFn: ({ questionId, choice }: { questionId: string; choice: Choice }) =>
@@ -74,6 +93,17 @@ export default function TakeExamPage({ params }: { params: { id: string; session
   const current = questions?.[index];
   const answeredCount = Object.keys(answers).length;
   const progress = total ? Math.round((answeredCount / total) * 100) : 0;
+
+  const remainingMs = endsAt ? endsAt.getTime() - now : null;
+  const expired = remainingMs !== null && remainingMs <= 0;
+
+  // Vaqt tugaganda avto-yakunlash
+  useEffect(() => {
+    if (expired && !result && questions) {
+      finishMut.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expired]);
 
   const options = useMemo(() => {
     if (!current) return [];
@@ -107,7 +137,10 @@ export default function TakeExamPage({ params }: { params: { id: string; session
           </p>
           <p className="text-xs text-muted-foreground">Javob berildi: {answeredCount}</p>
         </div>
-        <Badge variant="secondary">{progress}% tugadi</Badge>
+        <div className="flex items-center gap-2">
+          {remainingMs !== null && <CountdownBadge remainingMs={Math.max(remainingMs, 0)} />}
+          <Badge variant="secondary">{progress}% tugadi</Badge>
+        </div>
       </div>
       <Progress value={progress} />
 
@@ -181,6 +214,23 @@ export default function TakeExamPage({ params }: { params: { id: string; session
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function CountdownBadge({ remainingMs }: { remainingMs: number }) {
+  const totalSec = Math.floor(remainingMs / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const label =
+    h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+      : `${m}:${String(s).padStart(2, "0")}`;
+  const urgent = remainingMs <= 60_000;
+  return (
+    <Badge variant={urgent ? "destructive" : "default"} className="font-mono">
+      <Clock className="h-3 w-3" /> {label}
+    </Badge>
   );
 }
 
