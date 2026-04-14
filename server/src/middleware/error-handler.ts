@@ -1,0 +1,11 @@
+import { Request, Response, NextFunction } from 'express';
+
+export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
+  console.error('Xatolik:', err.message);
+
+  if (err.message.includes('.docx')) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  res.status(500).json({ error: 'Server xatoligi' });
+}

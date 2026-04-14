@@ -1,0 +1,101 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { Plus, FileText, BarChart3, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getExams } from "@/api/exams";
+import { formatDate } from "@/lib/utils";
+
+export default function ExamsListPage() {
+  const router = useRouter();
+  const { data, isLoading } = useQuery({ queryKey: ["exams"], queryFn: getExams });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Imtihonlar</h1>
+          <p className="text-muted-foreground">Word/PDF fayldan imtihon yarating, variantlarni va natijalarni ko'ring</p>
+        </div>
+        <Button asChild>
+          <Link href="/teacher/exams/new"><Plus className="h-4 w-4" /> Yangi imtihon</Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="space-y-2 p-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : data?.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nomi</TableHead>
+                  <TableHead>Variantlar</TableHead>
+                  <TableHead>Fayl</TableHead>
+                  <TableHead>Yaratilgan</TableHead>
+                  <TableHead className="text-right">Amallar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data?.map((e) => (
+                  <TableRow
+                    key={e.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/teacher/exams/${e.id}`)}
+                  >
+                    <TableCell className="font-medium">{e.title}</TableCell>
+                    <TableCell><Badge variant="secondary">{e.variantCount}</Badge></TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground">
+                      {e.originalFilename || "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(e.createdAt)}</TableCell>
+                    <TableCell className="text-right" onClick={(ev) => ev.stopPropagation()}>
+                      <div className="inline-flex gap-2">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/teacher/exams/${e.id}`}>
+                            <Eye className="h-4 w-4" /> Variantlar
+                          </Link>
+                        </Button>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/teacher/exams/${e.id}/results`}>
+                            <BarChart3 className="h-4 w-4" /> Natijalar
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+        <FileText className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-medium">Imtihon yo'q</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Birinchi imtihoningizni yarating</p>
+      <Button asChild className="mt-4">
+        <Link href="/teacher/exams/new"><Plus className="h-4 w-4" /> Yangi imtihon</Link>
+      </Button>
+    </div>
+  );
+}
