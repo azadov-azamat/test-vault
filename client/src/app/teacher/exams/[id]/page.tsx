@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getExam, updateExamSchedule } from "@/api/exams";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/i18n/context";
 import { extractError } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ function toLocalInput(iso: string | null | undefined): string {
 export default function ExamDetailsPage({ params }: { params: { id: string } }) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLang();
   const { data, isLoading } = useQuery({
     queryKey: ["exam", params.id],
     queryFn: () => getExam(params.id),
@@ -50,9 +52,9 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["exam", params.id] });
       qc.invalidateQueries({ queryKey: ["exams"] });
-      toast({ title: "Imtihon yangilandi" });
+      toast({ title: t.examDetails.examUpdated });
     },
-    onError: (e) => toast({ variant: "destructive", title: "Xatolik", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.error, description: extractError(e) }),
   });
 
   const saveSchedule = () => {
@@ -87,17 +89,17 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/teacher/exams"><ArrowLeft className="h-4 w-4" /> Imtihonlar</Link>
+          <Link href="/teacher/exams"><ArrowLeft className="h-4 w-4" /> {t.exams}</Link>
         </Button>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{data?.title || "Yuklanmoqda..."}</h1>
-              {data?.isFrozen && <Badge variant="destructive">Muzlatilgan</Badge>}
+              <h1 className="text-2xl font-bold tracking-tight">{data?.title || t.loading}</h1>
+              {data?.isFrozen && <Badge variant="destructive">{t.examDetails.frozen}</Badge>}
             </div>
             {data && (
               <p className="text-sm text-muted-foreground">
-                {data.variantCount} variant • {data.questions?.length ?? 0} savol
+                {data.variantCount} {t.variant} • {data.questions?.length ?? 0} {t.question}
                 {data.originalFilename && <> • {data.originalFilename}</>}
                 {data.createdAt && <> • {formatDate(data.createdAt)}</>}
               </p>
@@ -110,11 +112,11 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
               disabled={updateM.isPending || !data}
             >
               {data?.isFrozen ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-              {data?.isFrozen ? "Ochish" : "Muzlatish"}
+              {data?.isFrozen ? t.examDetails.unfreeze : t.examDetails.freeze}
             </Button>
             <Button asChild variant="outline">
               <Link href={`/teacher/exams/${params.id}/results`}>
-                <BarChart3 className="h-4 w-4" /> Natijalar
+                <BarChart3 className="h-4 w-4" /> {t.results}
               </Link>
             </Button>
           </div>
@@ -124,8 +126,8 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
       {data?.isFrozen && (
         <Alert variant="destructive">
           <Lock className="h-4 w-4" />
-          <AlertTitle>Imtihon muzlatilgan</AlertTitle>
-          <AlertDescription>O'quvchilar hozir bu imtihonga kira olmaydi va javob bera olmaydi</AlertDescription>
+          <AlertTitle>{t.examDetails.frozenTitle}</AlertTitle>
+          <AlertDescription>{t.examDetails.frozenDescription}</AlertDescription>
         </Alert>
       )}
 
@@ -133,37 +135,37 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Jadval va vaqt
+              <Clock className="h-4 w-4" /> {t.examDetails.scheduleTitle}
             </CardTitle>
-            <CardDescription>Boshlanish vaqti va umumiy davomiylikni sozlang</CardDescription>
+            <CardDescription>{t.examDetails.scheduleDescription}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1">
-                  <CalendarClock className="h-3.5 w-3.5" /> Boshlanish vaqti
+                  <CalendarClock className="h-3.5 w-3.5" /> {t.examDetails.startTime}
                 </Label>
                 <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
                 <p className="text-xs text-muted-foreground">
-                  {data.startsAt ? `Hozir: ${formatDate(data.startsAt)}` : "Cheklovsiz — istalgan vaqt boshlash mumkin"}
+                  {data.startsAt ? t.examDetails.currentStartTime(formatDate(data.startsAt)) : t.examDetails.noStartTimeLimit}
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label>Umumiy vaqt (daqiqa)</Label>
+                <Label>{t.examDetails.totalTime}</Label>
                 <Input
                   type="number"
                   min={0}
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  placeholder="Vaqt cheklovisiz"
+                  placeholder={t.examDetails.noTimeLimit}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {data.durationMinutes ? `Hozir: ${data.durationMinutes} daqiqa` : "Cheklovsiz"}
+                  {data.durationMinutes ? t.examDetails.currentDuration(data.durationMinutes) : t.examDetails.unlimited}
                 </p>
               </div>
             </div>
             <Button onClick={saveSchedule} disabled={updateM.isPending}>
-              <Save className="h-4 w-4" /> {updateM.isPending ? "Saqlanmoqda..." : "Jadvalni saqlash"}
+              <Save className="h-4 w-4" /> {updateM.isPending ? t.saving : t.examDetails.saveSchedule}
             </Button>
           </CardContent>
         </Card>
@@ -180,7 +182,7 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
         <Card>
           <CardContent className="flex flex-col items-center py-16 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground">Savollar topilmadi</p>
+            <p className="text-muted-foreground">{t.examDetails.noQuestions}</p>
           </CardContent>
         </Card>
       )}
@@ -188,15 +190,15 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
       {variants.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Variantlar bo'yicha savollar</CardTitle>
-            <CardDescription>To'g'ri javoblar yashil rangda ko'rsatilgan</CardDescription>
+            <CardTitle className="text-lg">{t.examDetails.questionsTitle}</CardTitle>
+            <CardDescription>{t.examDetails.questionsDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={String(first)}>
               <TabsList className="flex-wrap h-auto">
                 {variants.map((v) => (
                   <TabsTrigger key={v.variantNumber} value={String(v.variantNumber)}>
-                    Variant {v.variantNumber}
+                    {t.variant} {v.variantNumber}
                     <Badge variant="secondary" className="ml-2">{v.questions.length}</Badge>
                   </TabsTrigger>
                 ))}
@@ -217,6 +219,7 @@ export default function ExamDetailsPage({ params }: { params: { id: string } }) 
 }
 
 function QuestionCard({ q }: { q: Question }) {
+  const { t } = useLang();
   const options: Array<{ key: "a" | "b" | "c" | "d"; text: string | null }> = [
     { key: "a", text: q.optionA },
     { key: "b", text: q.optionB },

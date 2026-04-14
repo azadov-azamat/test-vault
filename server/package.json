@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "next start",
+    "start": "node dist/app.js",
     "migrate": "ts-node src/migrations/run.ts",
     "migrate:prod": "node dist/migrations/run.js",
     "seed": "ts-node src/seeders/seed.ts",

@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/i18n/context";
 import { previewExamFile, createExam } from "@/api/exams";
 import { extractError } from "@/lib/api";
 import type { ExamPreview } from "@/types";
@@ -25,6 +26,7 @@ export default function NewExamPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLang();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [variantCount, setVariantCount] = useState<2 | 4 | 6>(2);
@@ -42,7 +44,7 @@ export default function NewExamPage() {
       setDurationMinutes(data.questionsPerVariant * minutesPerQuestion);
       setStep("review");
     },
-    onError: (e) => toast({ variant: "destructive", title: "Tahlil xatoligi", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.newExam.analyzeError, description: extractError(e) }),
   });
 
   const createMutation = useMutation({
@@ -58,22 +60,20 @@ export default function NewExamPage() {
       }),
     onSuccess: (exam) => {
       qc.invalidateQueries({ queryKey: ["exams"] });
-      toast({ title: "Imtihon yaratildi", description: exam.title });
+      toast({ title: t.newExam.examCreated, description: exam.title });
       router.push("/teacher/exams");
     },
-    onError: (e) => toast({ variant: "destructive", title: "Saqlash xatoligi", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.newExam.saveError, description: extractError(e) }),
   });
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/teacher/exams"><ArrowLeft className="h-4 w-4" /> Imtihonlar</Link>
+          <Link href="/teacher/exams"><ArrowLeft className="h-4 w-4" /> {t.exams}</Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Yangi imtihon yaratish</h1>
-        <p className="text-muted-foreground">
-          Fayl yuklang → variantlarni ko'rib chiqing → tasdiqlang
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.newExam.title}</h1>
+        <p className="text-muted-foreground">{t.newExam.description}</p>
       </div>
 
       <Stepper step={step} />
@@ -114,9 +114,10 @@ export default function NewExamPage() {
 }
 
 function Stepper({ step }: { step: Step }) {
+  const { t } = useLang();
   const steps: { key: Step; label: string }[] = [
-    { key: "upload", label: "Fayl yuklash" },
-    { key: "review", label: "Ko'rib chiqish" },
+    { key: "upload", label: t.newExam.stepUpload },
+    { key: "review", label: t.newExam.stepReview },
   ];
   return (
     <div className="flex items-center gap-3">
@@ -154,18 +155,16 @@ function UploadStep({
   loading: boolean;
   onNext: () => void;
 }) {
+  const { t } = useLang();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Fayl va variantlar soni</CardTitle>
-        <CardDescription>
-          .docx yoki matnli .pdf fayl yuklang. To'g'ri javob Word'da <b>bold/underline</b> bilan,
-          PDF'da <b>bold</b> bilan yoki <code>+</code> belgisi orqali belgilanadi (masalan: <code>+B) javob</code>).
-        </CardDescription>
+        <CardTitle>{t.newExam.uploadTitle}</CardTitle>
+        <CardDescription>{t.newExam.uploadDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="file">Fayl</Label>
+          <Label htmlFor="file">{t.newExam.fileLabel}</Label>
           <label
             htmlFor="file"
             className="flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-input p-6 transition-colors hover:bg-accent"
@@ -178,8 +177,8 @@ function UploadStep({
               </>
             ) : (
               <>
-                <p className="text-sm font-medium">Faylni bu yerga torting yoki tanlang</p>
-                <p className="text-xs text-muted-foreground">.docx yoki matnli .pdf</p>
+                <p className="text-sm font-medium">{t.newExam.dragOrSelect}</p>
+                <p className="text-xs text-muted-foreground">{t.newExam.fileTypes}</p>
               </>
             )}
             <input
@@ -193,17 +192,17 @@ function UploadStep({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Variantlar soni</Label>
+          <Label>{t.newExam.variantCountLabel}</Label>
           <Select value={String(variantCount)} onValueChange={(v) => onVariantCountChange(Number(v) as 2 | 4 | 6)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[2, 4, 6].map((n) => <SelectItem key={n} value={String(n)}>{n} ta variant</SelectItem>)}
+              {[2, 4, 6].map((n) => <SelectItem key={n} value={String(n)}>{t.newExam.nVariants(n)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
         <Button onClick={onNext} disabled={!file || loading} className="w-full">
-          {loading ? "Tahlil qilinmoqda..." : "Tahlil qilish va ko'rib chiqish"}
+          {loading ? t.newExam.analyzing : t.newExam.analyzeButton}
         </Button>
       </CardContent>
     </Card>
@@ -231,6 +230,7 @@ function ReviewStep({
   onConfirm: () => void;
   loading: boolean;
 }) {
+  const { t } = useLang();
   const first = preview.variants[0]?.variantNumber ?? 1;
   const totalQuestions = preview.variants.reduce((s, v) => s + v.questions.length, 0);
   const missingAnswer = preview.variants.flatMap((v) =>
@@ -273,48 +273,44 @@ function ReviewStep({
     <div className="space-y-6">
       <Alert variant="success">
         <FileCheck2 className="h-4 w-4" />
-        <AlertTitle>Fayl muvaffaqiyatli tahlil qilindi</AlertTitle>
+        <AlertTitle>{t.newExam.fileSuccess}</AlertTitle>
         <AlertDescription>
-          Hozirgi: <b>{totalQuestions}</b> savol
-          {preview.discardedQuestions > 0 && <> • Tashlab yuborilgan: {preview.discardedQuestions}</>}
+          {t.newExam.currentQuestions(totalQuestions)}
+          {preview.discardedQuestions > 0 && <> • {t.newExam.discarded(preview.discardedQuestions)}</>}
         </AlertDescription>
       </Alert>
 
       {missingAnswer > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>To'g'ri javob belgilanmagan: {missingAnswer} ta savol</AlertTitle>
-          <AlertDescription>
-            Saqlash uchun har bir savolda variant ustiga bosib to'g'ri javobni belgilang yoki savolni o'chiring.
-          </AlertDescription>
+          <AlertTitle>{t.newExam.missingAnswerTitle(missingAnswer)}</AlertTitle>
+          <AlertDescription>{t.newExam.missingAnswerDescription}</AlertDescription>
         </Alert>
       )}
 
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Pencil className="h-4 w-4" /> Imtihon nomi
+            <Pencil className="h-4 w-4" /> {t.newExam.examNameTitle}
           </CardTitle>
-          <CardDescription>Fayl nomidan avtomatik to'ldirildi — xohlasangiz tahrirlang</CardDescription>
+          <CardDescription>{t.newExam.examNameDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Input value={title} onChange={(e) => onTitleChange(e.target.value)} placeholder="Imtihon nomi" />
+          <Input value={title} onChange={(e) => onTitleChange(e.target.value)} placeholder={t.newExam.examNamePlaceholder} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-4 w-4" /> Vaqt va jadval
+            <Clock className="h-4 w-4" /> {t.newExam.timeTitle}
           </CardTitle>
-          <CardDescription>
-            Har savolga necha daqiqa ketishini belgilang — umumiy vaqt avtomatik hisoblanadi
-          </CardDescription>
+          <CardDescription>{t.newExam.timeDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label>Har savolga (daqiqa)</Label>
+              <Label>{t.newExam.perQuestion}</Label>
               <Input
                 type="number"
                 min={0}
@@ -323,11 +319,11 @@ function ReviewStep({
                 onChange={(e) => onMinutesPerQuestionChange(Number(e.target.value) || 0)}
               />
               <p className="text-xs text-muted-foreground">
-                {preview.questionsPerVariant} savol × {minutesPerQuestion} daqiqa
+                {t.newExam.perQuestionHint(preview.questionsPerVariant, minutesPerQuestion)}
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label>Umumiy vaqt (daqiqa)</Label>
+              <Label>{t.newExam.totalTime}</Label>
               <Input
                 type="number"
                 min={0}
@@ -336,24 +332,20 @@ function ReviewStep({
                   const v = e.target.value;
                   onDurationMinutesChange(v === "" ? null : Number(v));
                 }}
-                placeholder="Vaqt cheklovisiz"
+                placeholder={t.newExam.noTimeLimit}
               />
-              <p className="text-xs text-muted-foreground">
-                Bo'sh qolsa vaqt cheklovisiz bo'ladi
-              </p>
+              <p className="text-xs text-muted-foreground">{t.newExam.totalTimeHint}</p>
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1">
-                <CalendarClock className="h-3.5 w-3.5" /> Boshlanish vaqti
+                <CalendarClock className="h-3.5 w-3.5" /> {t.newExam.startTime}
               </Label>
               <Input
                 type="datetime-local"
                 value={startsAt}
                 onChange={(e) => onStartsAtChange(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                Bo'sh qolsa darhol boshlash mumkin
-              </p>
+              <p className="text-xs text-muted-foreground">{t.newExam.startTimeHint}</p>
             </div>
           </div>
         </CardContent>
@@ -361,17 +353,15 @@ function ReviewStep({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Variantlar bo'yicha taqsimlangan savollar</CardTitle>
-          <CardDescription>
-            Variant ustiga bosib to'g'ri javobni belgilang. Kerakli savollarni o'chirib tashlashingiz mumkin.
-          </CardDescription>
+          <CardTitle className="text-lg">{t.newExam.questionsTitle}</CardTitle>
+          <CardDescription>{t.newExam.questionsDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue={String(first)}>
             <TabsList className="flex-wrap h-auto">
               {preview.variants.map((v) => (
                 <TabsTrigger key={v.variantNumber} value={String(v.variantNumber)}>
-                  Variant {v.variantNumber}
+                  {t.variant} {v.variantNumber}
                   <Badge variant="secondary" className="ml-2">{v.questions.length}</Badge>
                 </TabsTrigger>
               ))}
@@ -379,7 +369,7 @@ function ReviewStep({
             {preview.variants.map((v) => (
               <TabsContent key={v.variantNumber} value={String(v.variantNumber)} className="space-y-4">
                 {v.questions.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">Bu variantda savol qolmadi</p>
+                  <p className="py-8 text-center text-sm text-muted-foreground">{t.newExam.noQuestionsInVariant}</p>
                 ) : (
                   v.questions.map((q) => (
                     <QuestionCard
@@ -399,13 +389,13 @@ function ReviewStep({
 
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={onBack} disabled={loading}>
-          <ArrowLeft className="h-4 w-4" /> Orqaga
+          <ArrowLeft className="h-4 w-4" /> {t.back}
         </Button>
         <Button
           onClick={onConfirm}
           disabled={loading || !title.trim() || totalQuestions === 0 || missingAnswer > 0}
         >
-          {loading ? "Saqlanmoqda..." : "Tasdiqlash va saqlash"}
+          {loading ? t.saving : t.newExam.confirm}
         </Button>
       </div>
     </div>
@@ -420,6 +410,7 @@ function QuestionCard({
   onSetCorrect: (letter: "a" | "b" | "c" | "d") => void;
   onDelete: () => void;
 }) {
+  const { t } = useLang();
   const options: Array<{ key: "a" | "b" | "c" | "d"; text: string | null }> = [
     { key: "a", text: q.optionA },
     { key: "b", text: q.optionB },
@@ -437,7 +428,7 @@ function QuestionCard({
           variant="ghost"
           className="h-7 w-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={onDelete}
-          title="Savolni o'chirish"
+          title={t.newExam.deleteQuestion}
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -456,7 +447,7 @@ function QuestionCard({
                   ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-500/40"
                   : "hover:bg-accent"
               )}
-              title={correct ? "To'g'ri javob" : "To'g'ri javob deb belgilash"}
+              title={correct ? t.newExam.correctAnswer : t.newExam.markCorrect}
             >
               <span className="font-semibold uppercase">{o.key})</span>
               <span className="flex-1 whitespace-pre-wrap">{o.text}</span>
@@ -466,9 +457,7 @@ function QuestionCard({
         })}
       </div>
       {noAnswer && (
-        <p className="mt-2 pl-8 text-xs text-destructive">
-          To'g'ri javob belgilanmagan — variant ustiga bosing
-        </p>
+        <p className="mt-2 pl-8 text-xs text-destructive">{t.newExam.missingAnswerHint}</p>
       )}
     </div>
   );

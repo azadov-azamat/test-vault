@@ -10,9 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getExamResults } from "@/api/exams";
+import { useLang } from "@/i18n/context";
 import { formatDate } from "@/lib/utils";
 
 export default function ExamResultsPage({ params }: { params: { id: string } }) {
+  const { t } = useLang();
   const { data, isLoading } = useQuery({
     queryKey: ["exam-results", params.id],
     queryFn: () => getExamResults(params.id),
@@ -28,38 +30,38 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/teacher/exams"><ArrowLeft className="h-4 w-4" /> Imtihonlar</Link>
+          <Link href="/teacher/exams"><ArrowLeft className="h-4 w-4" /> {t.exams}</Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{data?.exam.title || "Yuklanmoqda..."}</h1>
-        <p className="text-muted-foreground">O'quvchilarning natijalari</p>
+        <h1 className="text-2xl font-bold tracking-tight">{data?.exam.title || t.loading}</h1>
+        <p className="text-muted-foreground">{t.examResults.studentsResults}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <StatBlock title="Topshirganlar" value={completed.length} icon={<Trophy className="h-5 w-5 text-emerald-500" />} loading={isLoading} />
-        <StatBlock title="Davom etayotgan" value={inProgress} icon={<Users2 className="h-5 w-5 text-amber-500" />} loading={isLoading} />
-        <StatBlock title="O'rtacha ball" value={`${avg}%`} icon={<Trophy className="h-5 w-5 text-primary" />} loading={isLoading} />
+        <StatBlock title={t.examResults.completed} value={completed.length} icon={<Trophy className="h-5 w-5 text-emerald-500" />} loading={isLoading} />
+        <StatBlock title={t.examResults.inProgress} value={inProgress} icon={<Users2 className="h-5 w-5 text-amber-500" />} loading={isLoading} />
+        <StatBlock title={t.examResults.avgScore} value={`${avg}%`} icon={<Trophy className="h-5 w-5 text-primary" />} loading={isLoading} />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Sessiyalar</CardTitle>
-          <CardDescription>Har bir o'quvchi natijasi</CardDescription>
+          <CardTitle className="text-lg">{t.examResults.sessions}</CardTitle>
+          <CardDescription>{t.examResults.eachStudentResult}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="space-y-2 p-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : data?.results.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">Hozircha topshirilmagan</p>
+            <p className="py-12 text-center text-sm text-muted-foreground">{t.examResults.noSubmissions}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>O'quvchi</TableHead>
-                  <TableHead>Variant</TableHead>
-                  <TableHead>Holat</TableHead>
-                  <TableHead>To'g'ri / Jami</TableHead>
-                  <TableHead>Natija</TableHead>
-                  <TableHead>Boshlangan</TableHead>
+                  <TableHead>{t.examResults.student}</TableHead>
+                  <TableHead>{t.variant}</TableHead>
+                  <TableHead>{t.examResults.status}</TableHead>
+                  <TableHead>{t.examResults.correctTotal}</TableHead>
+                  <TableHead>{t.examResults.result}</TableHead>
+                  <TableHead>{t.examResults.started}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -72,8 +74,8 @@ export default function ExamResultsPage({ params }: { params: { id: string } }) 
                     <TableCell><Badge variant="secondary">V-{r.variantNumber}</Badge></TableCell>
                     <TableCell>
                       {r.finishedAt
-                        ? <Badge variant="success">Yakunlangan</Badge>
-                        : <Badge variant="warning">Davom etmoqda</Badge>}
+                        ? <Badge variant="success">{t.examResults.statusCompleted}</Badge>
+                        : <Badge variant="warning">{t.examResults.statusInProgress}</Badge>}
                     </TableCell>
                     <TableCell>{r.correct} / {r.totalQuestions}</TableCell>
                     <TableCell className="w-48">

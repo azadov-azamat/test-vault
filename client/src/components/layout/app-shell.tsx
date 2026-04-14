@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { LogOut, GraduationCap, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useLang } from "@/i18n/context";
+import { LangSwitcher } from "@/components/layout/lang-switcher";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
@@ -16,13 +18,14 @@ export interface NavItem {
 export function AppShell({ nav, children }: { nav: NavItem[]; children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { t } = useLang();
 
   return (
     <div className="flex min-h-screen bg-muted/20">
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-background md:flex">
         <div className="flex h-16 items-center gap-2 border-b px-6">
           <GraduationCap className="h-6 w-6 text-primary" />
-          <span className="text-lg font-semibold">TestVault</span>
+          <span className="text-lg font-semibold">{t.appName}</span>
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {nav.map((item) => {
@@ -46,12 +49,15 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: React.Re
           })}
         </nav>
         <div className="border-t p-3">
-          <div className="mb-2 px-2">
-            <p className="truncate text-sm font-medium">{user?.fullName}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email || user?.login}</p>
+          <div className="mb-2 flex items-center justify-between px-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{user?.fullName}</p>
+              <p className="truncate text-xs text-muted-foreground">{user?.email || user?.login}</p>
+            </div>
+            <LangSwitcher />
           </div>
           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
-            <LogOut className="h-4 w-4" /> Chiqish
+            <LogOut className="h-4 w-4" /> {t.logout}
           </Button>
         </div>
       </aside>
@@ -60,11 +66,14 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: React.Re
         <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:hidden">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
-            <span className="font-semibold">TestVault</span>
+            <span className="font-semibold">{t.appName}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={logout}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <LangSwitcher />
+            <Button variant="ghost" size="sm" onClick={logout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </header>
         <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
