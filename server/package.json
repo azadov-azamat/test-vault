@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
-    "prestart": "yarn build",
     "start": "node dist/app.js",
     "migrate": "ts-node src/migrations/run.ts",
+    "migrate:prod": "node dist/migrations/run.js",
     "seed": "ts-node src/seeders/seed.ts",
     "test": "jest --forceExit --detectOpenHandles",
     "test:watch": "jest --watch --forceExit --detectOpenHandles"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -19,6 +19,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:3001",
+      "http://localhost:8070",
       "https://test-vault-rust.vercel.app",
     ],
     credentials: true,
