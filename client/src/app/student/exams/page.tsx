@@ -7,16 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { getStudentExams } from "@/api/exams";
+import { useLang } from "@/i18n/context";
 import { formatDate } from "@/lib/utils";
 
 export default function StudentExamsPage() {
+  const { t } = useLang();
   const { data, isLoading } = useQuery({ queryKey: ["student-exams"], queryFn: getStudentExams });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Mavjud imtihonlar</h1>
-        <p className="text-muted-foreground">Test topshirish uchun imtihonni tanlang</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.studentExams.title}</h1>
+        <p className="text-muted-foreground">{t.studentExams.description}</p>
       </div>
 
       {isLoading ? (
@@ -27,7 +29,7 @@ export default function StudentExamsPage() {
         <Card>
           <CardContent className="flex flex-col items-center py-16 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground">Hozircha imtihon mavjud emas</p>
+            <p className="text-muted-foreground">{t.studentExams.noExams}</p>
           </CardContent>
         </Card>
       ) : (
@@ -43,7 +45,7 @@ export default function StudentExamsPage() {
                   <CardDescription>{formatDate(e.createdAt)}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Badge variant="secondary">{e.variantCount} variant</Badge>
+                  <Badge variant="secondary">{e.variantCount} {t.variant}</Badge>
                 </CardContent>
               </Card>
             </Link>

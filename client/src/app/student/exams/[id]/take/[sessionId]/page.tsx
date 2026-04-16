@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/i18n/context";
 import { submitAnswer, finishExam } from "@/api/sessions";
 import { extractError } from "@/lib/api";
 import type { FinishResult } from "@/types";
@@ -34,6 +35,7 @@ type Choice = "a" | "b" | "c" | "d";
 export default function TakeExamPage({ params }: { params: { id: string; sessionId: string } }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLang();
   const [questions, setQuestions] = useState<Q[] | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, Choice>>({});
@@ -47,8 +49,8 @@ export default function TakeExamPage({ params }: { params: { id: string; session
     if (!raw) {
       toast({
         variant: "destructive",
-        title: "Sessiya topilmadi",
-        description: "Iltimos, imtihonni qaytadan boshlang",
+        title: t.takeExam.sessionNotFound,
+        description: t.takeExam.sessionNotFoundDescription,
       });
       router.replace(`/student/exams/${params.id}`);
       return;
@@ -65,7 +67,7 @@ export default function TakeExamPage({ params }: { params: { id: string; session
       setAnswers(map);
     }
     if (parsed.endsAt) setEndsAt(new Date(parsed.endsAt));
-  }, [params.sessionId, params.id, router, toast]);
+  }, [params.sessionId, params.id, router, toast, t]);
 
   useEffect(() => {
     if (!endsAt) return;
@@ -76,7 +78,7 @@ export default function TakeExamPage({ params }: { params: { id: string; session
   const submitMut = useMutation({
     mutationFn: ({ questionId, choice }: { questionId: string; choice: Choice }) =>
       submitAnswer(params.sessionId, questionId, choice),
-    onError: (e) => toast({ variant: "destructive", title: "Saqlanmadi", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.takeExam.saveFailed, description: extractError(e) }),
   });
 
   const finishMut = useMutation({
@@ -86,7 +88,7 @@ export default function TakeExamPage({ params }: { params: { id: string; session
       setResult(r);
       setConfirmFinish(false);
     },
-    onError: (e) => toast({ variant: "destructive", title: "Yakunlash xatoligi", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.takeExam.finishError, description: extractError(e) }),
   });
 
   const total = questions?.length ?? 0;
@@ -97,7 +99,6 @@ export default function TakeExamPage({ params }: { params: { id: string; session
   const remainingMs = endsAt ? endsAt.getTime() - now : null;
   const expired = remainingMs !== null && remainingMs <= 0;
 
-  // Vaqt tugaganda avto-yakunlash
   useEffect(() => {
     if (expired && !result && questions) {
       finishMut.mutate();
@@ -116,7 +117,7 @@ export default function TakeExamPage({ params }: { params: { id: string; session
   }, [current]);
 
   if (!questions) {
-    return <div className="container py-10 text-center text-muted-foreground">Yuklanmoqda...</div>;
+    return <div className="container py-10 text-center text-muted-foreground">{t.loading}</div>;
   }
 
   if (result) return <ResultView result={result} examId={params.id} />;
@@ -133,13 +134,13 @@ export default function TakeExamPage({ params }: { params: { id: string; session
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
-            Savol {index + 1} / {total}
+            {t.takeExam.questionOf(index + 1, total)}
           </p>
-          <p className="text-xs text-muted-foreground">Javob berildi: {answeredCount}</p>
+          <p className="text-xs text-muted-foreground">{t.takeExam.answered(answeredCount)}</p>
         </div>
         <div className="flex items-center gap-2">
           {remainingMs !== null && <CountdownBadge remainingMs={Math.max(remainingMs, 0)} />}
-          <Badge variant="secondary">{progress}% tugadi</Badge>
+          <Badge variant="secondary">{t.takeExam.percentDone(progress)}</Badge>
         </div>
       </div>
       <Progress value={progress} />
@@ -149,7 +150,7 @@ export default function TakeExamPage({ params }: { params: { id: string; session
           <CardTitle className="text-lg leading-snug whitespace-pre-wrap">
             {current?.questionText}
           </CardTitle>
-          <CardDescription>Bitta to'g'ri javobni tanlang</CardDescription>
+          <CardDescription>{t.takeExam.selectOne}</CardDescription>
         </CardHeader>
         <CardContent>
           <RadioGroup
@@ -184,14 +185,14 @@ export default function TakeExamPage({ params }: { params: { id: string; session
 
       <div className="flex items-center justify-between">
         <Button variant="outline" disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>
-          <ArrowLeft className="h-4 w-4" /> Oldingi
+          <ArrowLeft className="h-4 w-4" /> {t.takeExam.previous}
         </Button>
         <NumberPad questions={questions} answers={answers} index={index} onSelect={setIndex} />
         {index < total - 1 ? (
-          <Button onClick={() => setIndex((i) => i + 1)}>Keyingi <ArrowRight className="h-4 w-4" /></Button>
+          <Button onClick={() => setIndex((i) => i + 1)}>{t.takeExam.next} <ArrowRight className="h-4 w-4" /></Button>
         ) : (
           <Button onClick={() => setConfirmFinish(true)} variant="default">
-            <CheckCircle2 className="h-4 w-4" /> Yakunlash
+            <CheckCircle2 className="h-4 w-4" /> {t.takeExam.finish}
           </Button>
         )}
       </div>
@@ -199,16 +200,16 @@ export default function TakeExamPage({ params }: { params: { id: string; session
       <Dialog open={confirmFinish} onOpenChange={setConfirmFinish}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Imtihonni yakunlaysizmi?</DialogTitle>
+            <DialogTitle>{t.takeExam.finishTitle}</DialogTitle>
             <DialogDescription>
-              Siz {answeredCount} ta savolga javob berdingiz ({total} dan).
-              {answeredCount < total && " Javobsiz savollar noto'g'ri sifatida hisoblanadi."}
+              {t.takeExam.finishDescription(answeredCount, total)}
+              {answeredCount < total && t.takeExam.unansweredWarning}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmFinish(false)}>Bekor qilish</Button>
+            <Button variant="outline" onClick={() => setConfirmFinish(false)}>{t.cancel}</Button>
             <Button onClick={() => finishMut.mutate()} disabled={finishMut.isPending}>
-              {finishMut.isPending ? "Yakunlanmoqda..." : "Ha, yakunlash"}
+              {finishMut.isPending ? t.takeExam.finishing : t.takeExam.yesFinish}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -262,35 +263,36 @@ function NumberPad({
 }
 
 function ResultView({ result, examId }: { result: FinishResult; examId: string }) {
+  const { t } = useLang();
   const variant: "success" | "default" | "destructive" =
     result.percentage >= 70 ? "success" : result.percentage >= 50 ? "default" : "destructive";
   return (
     <div className="mx-auto max-w-xl space-y-6 py-8">
       <Alert variant={variant === "destructive" ? "destructive" : "success"}>
         <Trophy className="h-4 w-4" />
-        <AlertTitle>Imtihon yakunlandi</AlertTitle>
-        <AlertDescription>Sizning natijangiz tayyor</AlertDescription>
+        <AlertTitle>{t.result.examFinished}</AlertTitle>
+        <AlertDescription>{t.result.yourResult}</AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-5xl font-bold">{result.percentage}%</CardTitle>
-          <CardDescription>Umumiy natija</CardDescription>
+          <CardDescription>{t.result.overallResult}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Row label="Jami savollar" value={result.totalQuestions} />
-          <Row label="To'g'ri javoblar" value={result.correct} />
-          <Row label="Noto'g'ri javoblar" value={result.incorrect} />
+          <Row label={t.result.totalQuestions} value={result.totalQuestions} />
+          <Row label={t.result.correctAnswers} value={result.correct} />
+          <Row label={t.result.incorrectAnswers} value={result.incorrect} />
           <Progress value={result.percentage} className="mt-4" />
         </CardContent>
       </Card>
 
       <div className="flex justify-center gap-2">
         <Button asChild variant="outline">
-          <Link href={`/student/exams/${examId}`}>Variantlarga qaytish</Link>
+          <Link href={`/student/exams/${examId}`}>{t.result.backToVariants}</Link>
         </Button>
         <Button asChild>
-          <Link href="/student/exams">Imtihonlar ro'yxati</Link>
+          <Link href="/student/exams">{t.result.examsList}</Link>
         </Button>
       </div>
     </div>

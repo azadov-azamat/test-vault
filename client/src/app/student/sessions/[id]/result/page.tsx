@@ -10,9 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { getSessionResult } from "@/api/sessions";
+import { useLang } from "@/i18n/context";
 import { formatDate } from "@/lib/utils";
 
 export default function StudentSessionResultPage({ params }: { params: { id: string } }) {
+  const { t } = useLang();
   const { data, isLoading } = useQuery({
     queryKey: ["session-result", params.id],
     queryFn: () => getSessionResult(params.id),
@@ -21,7 +23,7 @@ export default function StudentSessionResultPage({ params }: { params: { id: str
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <Button asChild variant="ghost" size="sm">
-        <Link href="/student/exams"><ArrowLeft className="h-4 w-4" /> Imtihonlar</Link>
+        <Link href="/student/exams"><ArrowLeft className="h-4 w-4" /> {t.exams}</Link>
       </Button>
 
       {isLoading && (
@@ -37,35 +39,35 @@ export default function StudentSessionResultPage({ params }: { params: { id: str
             <h1 className="text-2xl font-bold tracking-tight">{data.exam.title}</h1>
             <div className="mt-1 flex flex-wrap gap-2 text-sm text-muted-foreground">
               <Badge variant="secondary">V-{data.variantNumber}</Badge>
-              <span>Boshlangan: {formatDate(data.startedAt)}</span>
-              {data.finishedAt && <span>Yakunlangan: {formatDate(data.finishedAt)}</span>}
+              <span>{t.result.startedAt(formatDate(data.startedAt))}</span>
+              {data.finishedAt && <span>{t.result.finishedAt(formatDate(data.finishedAt))}</span>}
             </div>
           </div>
 
           <Alert variant={data.percentage >= 50 ? "success" : "destructive"}>
             <Trophy className="h-4 w-4" />
             <AlertTitle>
-              {data.finishedAt ? "Imtihon yakunlandi" : "Imtihon davom etmoqda"}
+              {data.finishedAt ? t.result.examFinished : t.result.examInProgress}
             </AlertTitle>
-            <AlertDescription>Sizning natijangiz quyida</AlertDescription>
+            <AlertDescription>{t.result.yourResultBelow}</AlertDescription>
           </Alert>
 
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-5xl font-bold">{data.percentage}%</CardTitle>
-              <CardDescription>Umumiy natija</CardDescription>
+              <CardDescription>{t.result.overallResult}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Row label="Jami savollar" value={data.totalQuestions} />
-              <Row label="To'g'ri javoblar" value={data.correct} />
-              <Row label="Noto'g'ri javoblar" value={data.incorrect} />
+              <Row label={t.result.totalQuestions} value={data.totalQuestions} />
+              <Row label={t.result.correctAnswers} value={data.correct} />
+              <Row label={t.result.incorrectAnswers} value={data.incorrect} />
               <Progress value={data.percentage} className="mt-4" />
             </CardContent>
           </Card>
 
           <div className="flex justify-center">
             <Button asChild>
-              <Link href="/student/exams">Imtihonlar ro'yxati</Link>
+              <Link href="/student/exams">{t.result.examsList}</Link>
             </Button>
           </div>
         </>

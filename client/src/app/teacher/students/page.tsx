@@ -13,15 +13,17 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FormField } from "@/components/ui/form-field";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/i18n/context";
 import { getStudents, createStudent, updateStudent, deleteStudent } from "@/api/students";
 import { extractError } from "@/lib/api";
-import { createStudentSchema, type CreateStudentValues } from "@/schemas/teacher";
+import { createStudentSchemaI18n, type CreateStudentValues } from "@/schemas/teacher";
 import type { CreatedStudent, Student } from "@/types";
 import { formatDate } from "@/lib/utils";
 
 export default function StudentsPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLang();
   const { data, isLoading } = useQuery({ queryKey: ["students"], queryFn: getStudents });
   const [createOpen, setCreateOpen] = useState(false);
   const [created, setCreated] = useState<CreatedStudent | null>(null);
@@ -33,51 +35,51 @@ export default function StudentsPage() {
     onSuccess: (s) => {
       qc.invalidateQueries({ queryKey: ["students"] });
       setCreated(s);
-      toast({ title: "O'quvchi qo'shildi", description: s.fullName });
+      toast({ title: t.students.studentAdded, description: s.fullName });
     },
-    onError: (e) => toast({ variant: "destructive", title: "Xatolik", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.error, description: extractError(e) }),
   });
 
   const deleteM = useMutation({
     mutationFn: (id: string) => deleteStudent(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
-      toast({ title: "O'quvchi o'chirildi" });
+      toast({ title: t.students.studentDeleted });
       setDeleting(null);
     },
-    onError: (e) => toast({ variant: "destructive", title: "O'chirishda xatolik", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.students.deleteError, description: extractError(e) }),
   });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">O'quvchilar</h1>
-          <p className="text-muted-foreground">Yangi o'quvchi qo'shing yoki mavjudlarini boshqaring</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t.students.title}</h1>
+          <p className="text-muted-foreground">{t.students.description}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) setCreated(null); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4" /> Yangi o'quvchi</Button>
+            <Button><Plus className="h-4 w-4" /> {t.students.newStudent}</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Yangi o'quvchi qo'shish</DialogTitle>
-              <DialogDescription>Tizim avtomatik login va parol generatsiya qiladi</DialogDescription>
+              <DialogTitle>{t.students.addTitle}</DialogTitle>
+              <DialogDescription>{t.students.addDescription}</DialogDescription>
             </DialogHeader>
             {created ? (
               <CredentialsView student={created} onClose={() => { setCreated(null); setCreateOpen(false); }} />
             ) : (
               <Formik<CreateStudentValues>
                 initialValues={{ fullName: "" }}
-                validationSchema={createStudentSchema}
+                validationSchema={createStudentSchemaI18n(t)}
                 onSubmit={(v) => createM.mutate(v)}
               >
                 <Form className="space-y-4">
-                  <FormField name="fullName" label="To'liq F.I.O" placeholder="Karimov Sardor" />
+                  <FormField name="fullName" label={t.students.fullNameLabel} placeholder={t.students.fullNamePlaceholder} />
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Bekor qilish</Button>
+                    <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t.cancel}</Button>
                     <Button type="submit" disabled={createM.isPending}>
-                      {createM.isPending ? "Saqlanmoqda..." : "Yaratish"}
+                      {createM.isPending ? t.saving : t.create}
                     </Button>
                   </DialogFooter>
                 </Form>
@@ -96,18 +98,18 @@ export default function StudentsPage() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                 <Users className="h-6 w-6 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium">O'quvchi yo'q</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Birinchi o'quvchini qo'shing</p>
+              <h3 className="text-lg font-medium">{t.students.noStudents}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t.students.noStudentsHint}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>F.I.O</TableHead>
-                  <TableHead>Login</TableHead>
-                  <TableHead>Parol</TableHead>
-                  <TableHead>Qo'shilgan</TableHead>
-                  <TableHead className="text-right">Amallar</TableHead>
+                  <TableHead>{t.students.fio}</TableHead>
+                  <TableHead>{t.students.loginCol}</TableHead>
+                  <TableHead>{t.students.passwordCol}</TableHead>
+                  <TableHead>{t.students.addedCol}</TableHead>
+                  <TableHead className="text-right">{t.students.actionsCol}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,6 +147,7 @@ function StudentRow({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLang();
   const [visible, setVisible] = useState(false);
   const password = student.password;
 
@@ -154,7 +157,7 @@ function StudentRow({
     e.stopPropagation();
     if (!password) return;
     await navigator.clipboard.writeText(`Login: ${student.login}\nParol: ${password}`);
-    toast({ title: "Login va parol nusxalandi" });
+    toast({ title: t.students.loginPasswordCopied });
   };
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
@@ -169,10 +172,10 @@ function StudentRow({
             <code className="rounded bg-muted px-2 py-0.5 font-mono text-sm">
               {visible ? password : "•".repeat(Math.max(password.length, 6))}
             </code>
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setVisible((v) => !v)} title={visible ? "Yashirish" : "Ko'rsatish"}>
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setVisible((v) => !v)} title={visible ? t.hide : t.show}>
               {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={copy} title="Nusxalash">
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={copy} title={t.copy}>
               <Copy className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -183,10 +186,10 @@ function StudentRow({
       <TableCell className="text-muted-foreground">{formatDate(student.createdAt)}</TableCell>
       <TableCell className="text-right" onClick={stop}>
         <div className="inline-flex gap-1">
-          <Button size="sm" variant="outline" onClick={goDetails} title="Natijalarni ko'rish">
+          <Button size="sm" variant="outline" onClick={goDetails} title={t.students.viewResults}>
             <BarChart3 className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" onClick={onEdit} title="Tahrirlash">
+          <Button size="sm" variant="outline" onClick={onEdit} title={t.students.edit}>
             <Pencil className="h-4 w-4" />
           </Button>
           <Button
@@ -194,7 +197,7 @@ function StudentRow({
             variant="outline"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={onDelete}
-            title="O'chirish"
+            title={t.delete}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -207,6 +210,7 @@ function StudentRow({
 function EditDialog({ student, onClose }: { student: Student | null; onClose: () => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLang();
   const [fullName, setFullName] = useState("");
   const [regenerate, setRegenerate] = useState(false);
 
@@ -220,10 +224,10 @@ function EditDialog({ student, onClose }: { student: Student | null; onClose: ()
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
-      toast({ title: "O'quvchi yangilandi" });
+      toast({ title: t.students.studentUpdated });
       onClose();
     },
-    onError: (e) => toast({ variant: "destructive", title: "Xatolik", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.error, description: extractError(e) }),
   });
 
   return (
@@ -239,17 +243,17 @@ function EditDialog({ student, onClose }: { student: Student | null; onClose: ()
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>O'quvchini tahrirlash</DialogTitle>
-          <DialogDescription>F.I.O ni o'zgartirishingiz yoki yangi parol generatsiya qilishingiz mumkin</DialogDescription>
+          <DialogTitle>{t.students.editTitle}</DialogTitle>
+          <DialogDescription>{t.students.editDescription}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">To'liq F.I.O</label>
+            <label className="text-sm font-medium">{t.students.fullNameLabel}</label>
             <input
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Karimov Sardor"
+              placeholder={t.students.fullNamePlaceholder}
             />
           </div>
           <label className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm hover:bg-accent">
@@ -261,18 +265,16 @@ function EditDialog({ student, onClose }: { student: Student | null; onClose: ()
             />
             <div className="flex-1">
               <div className="flex items-center gap-1 font-medium">
-                <RefreshCcw className="h-3.5 w-3.5" /> Yangi parol generatsiya qilish
+                <RefreshCcw className="h-3.5 w-3.5" /> {t.students.regeneratePassword}
               </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Eski parol bekor qilinadi va yangisi yaratiladi
-              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{t.students.regenerateHint}</p>
             </div>
           </label>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Bekor qilish</Button>
+          <Button variant="outline" onClick={onClose}>{t.cancel}</Button>
           <Button onClick={() => m.mutate()} disabled={m.isPending || !fullName.trim()}>
-            {m.isPending ? "Saqlanmoqda..." : "Saqlash"}
+            {m.isPending ? t.saving : t.save}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -288,20 +290,20 @@ function DeleteDialog({
   onConfirm: () => void;
   loading: boolean;
 }) {
+  const { t } = useLang();
   return (
     <Dialog open={!!student} onOpenChange={(v) => !v && onCancel()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>O'quvchini o'chirish</DialogTitle>
+          <DialogTitle>{t.students.deleteTitle}</DialogTitle>
           <DialogDescription>
-            <b>{student?.fullName}</b> ni o'chirishni xohlaysizmi? Uning barcha sessiya va natijalari ham
-            o'chiriladi. Bu amalni qaytarib bo'lmaydi.
+            {student && t.students.deleteDescription(student.fullName)}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Bekor qilish</Button>
+          <Button variant="outline" onClick={onCancel}>{t.cancel}</Button>
           <Button variant="destructive" onClick={onConfirm} disabled={loading}>
-            {loading ? "O'chirilmoqda..." : "O'chirish"}
+            {loading ? t.deleting : t.delete}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -311,13 +313,14 @@ function DeleteDialog({
 
 function CredentialsView({ student, onClose }: { student: CreatedStudent; onClose: () => void }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
   const text = `Login: ${student.login}\nParol: ${student.password}`;
 
   const copy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    toast({ title: "Nusxalandi" });
+    toast({ title: t.copied });
     setTimeout(() => setCopied(false), 1500);
   };
 
@@ -325,21 +328,19 @@ function CredentialsView({ student, onClose }: { student: CreatedStudent; onClos
     <div className="space-y-4">
       <Alert variant="success">
         <Check className="h-4 w-4" />
-        <AlertTitle>O'quvchi yaratildi: {student.fullName}</AlertTitle>
-        <AlertDescription>
-          Quyidagi ma'lumotlarni o'quvchiga bering. Bu ma'lumotlar ro'yxatda ham saqlanadi.
-        </AlertDescription>
+        <AlertTitle>{t.students.createdTitle(student.fullName)}</AlertTitle>
+        <AlertDescription>{t.students.createdDescription}</AlertDescription>
       </Alert>
       <div className="space-y-2 rounded-md border bg-muted/30 p-4">
         <Row label="Login" value={student.login} />
-        <Row label="Parol" value={student.password} />
+        <Row label={t.students.passwordCol} value={student.password} />
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={copy}>
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          Nusxalash
+          {t.copy}
         </Button>
-        <Button onClick={onClose}>Yopish</Button>
+        <Button onClick={onClose}>{t.close}</Button>
       </DialogFooter>
     </div>
   );

@@ -15,7 +15,7 @@ import { useLang } from "@/i18n/context";
 import { LangSwitcher } from "@/components/layout/lang-switcher";
 import { login } from "@/api/auth";
 import { extractError } from "@/lib/api";
-import { loginSchema, type LoginValues } from "@/schemas/auth";
+import { createLoginSchema, type LoginValues } from "@/schemas/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function LoginPage() {
         <CardContent>
           <Formik<LoginValues>
             initialValues={{ identifier: "", password: "" }}
-            validationSchema={loginSchema}
+            validationSchema={createLoginSchema(t)}
             onSubmit={(v) => mutation.mutate(v)}
           >
             <Form className="space-y-4">

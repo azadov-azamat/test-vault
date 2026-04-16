@@ -11,6 +11,8 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = authStorage.getAccess();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  const lang = typeof window !== "undefined" ? localStorage.getItem("tv_lang") : null;
+  if (lang) config.headers["Accept-Language"] = lang;
   return config;
 });
 

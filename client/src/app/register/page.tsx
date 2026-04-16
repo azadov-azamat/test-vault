@@ -15,7 +15,7 @@ import { useLang } from "@/i18n/context";
 import { LangSwitcher } from "@/components/layout/lang-switcher";
 import { registerTeacher } from "@/api/auth";
 import { extractError } from "@/lib/api";
-import { registerSchema, type RegisterValues } from "@/schemas/auth";
+import { createRegisterSchema, type RegisterValues } from "@/schemas/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function RegisterPage() {
         <CardContent>
           <Formik<RegisterValues>
             initialValues={{ fullName: "", email: "", password: "", confirmPassword: "" }}
-            validationSchema={registerSchema}
+            validationSchema={createRegisterSchema(t)}
             onSubmit={(v) => mutation.mutate(v)}
           >
             <Form className="space-y-4">

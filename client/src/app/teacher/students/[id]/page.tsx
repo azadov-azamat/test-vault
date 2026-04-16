@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getStudentById } from "@/api/students";
+import { useLang } from "@/i18n/context";
 import { formatDate } from "@/lib/utils";
 
 export default function StudentDetailsPage({ params }: { params: { id: string } }) {
+  const { t } = useLang();
   const { data, isLoading } = useQuery({
     queryKey: ["student", params.id],
     queryFn: () => getStudentById(params.id),
@@ -36,9 +38,9 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/teacher/students"><ArrowLeft className="h-4 w-4" /> O'quvchilar</Link>
+          <Link href="/teacher/students"><ArrowLeft className="h-4 w-4" /> {t.students.title}</Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{data?.student.fullName || "Yuklanmoqda..."}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{data?.student.fullName || t.loading}</h1>
         {data && (
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -58,18 +60,18 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
       ) : (
         stats && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatBlock title="Jami sessiyalar" value={stats.totalSessions} icon={<FileText className="h-5 w-5 text-primary" />} />
-            <StatBlock title="Tugatgan" value={stats.completed} icon={<Trophy className="h-5 w-5 text-emerald-500" />} />
-            <StatBlock title="Davom etayotgan" value={stats.inProgress} icon={<Users2 className="h-5 w-5 text-amber-500" />} />
-            <StatBlock title="O'rtacha / Eng yaxshi" value={`${stats.avg}% / ${stats.best}%`} icon={<Trophy className="h-5 w-5 text-primary" />} />
+            <StatBlock title={t.studentDetails.totalSessions} value={stats.totalSessions} icon={<FileText className="h-5 w-5 text-primary" />} />
+            <StatBlock title={t.studentDetails.completed} value={stats.completed} icon={<Trophy className="h-5 w-5 text-emerald-500" />} />
+            <StatBlock title={t.studentDetails.inProgress} value={stats.inProgress} icon={<Users2 className="h-5 w-5 text-amber-500" />} />
+            <StatBlock title={t.studentDetails.avgBest} value={`${stats.avg}% / ${stats.best}%`} icon={<Trophy className="h-5 w-5 text-primary" />} />
           </div>
         )
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Imtihonlar bo'yicha natijalar</CardTitle>
-          <CardDescription>O'quvchining barcha topshirgan va davom etayotgan imtihonlari</CardDescription>
+          <CardTitle className="text-lg">{t.studentDetails.resultsTitle}</CardTitle>
+          <CardDescription>{t.studentDetails.resultsDescription}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -77,20 +79,18 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : data?.results.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              Hozircha imtihon topshirilmagan
-            </p>
+            <p className="py-12 text-center text-sm text-muted-foreground">{t.studentDetails.noExamsYet}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Imtihon</TableHead>
-                  <TableHead>Variant</TableHead>
-                  <TableHead>Holat</TableHead>
-                  <TableHead>To'g'ri / Jami</TableHead>
-                  <TableHead>Natija</TableHead>
-                  <TableHead>Sana</TableHead>
-                  <TableHead className="text-right">Amal</TableHead>
+                  <TableHead>{t.studentDetails.examCol}</TableHead>
+                  <TableHead>{t.studentDetails.variantCol}</TableHead>
+                  <TableHead>{t.studentDetails.statusCol}</TableHead>
+                  <TableHead>{t.studentDetails.correctTotalCol}</TableHead>
+                  <TableHead>{t.studentDetails.resultCol}</TableHead>
+                  <TableHead>{t.studentDetails.dateCol}</TableHead>
+                  <TableHead className="text-right">{t.studentDetails.actionCol}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -100,8 +100,8 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
                     <TableCell><Badge variant="secondary">V-{r.variantNumber}</Badge></TableCell>
                     <TableCell>
                       {r.finishedAt
-                        ? <Badge variant="success">Yakunlangan</Badge>
-                        : <Badge variant="warning">Davom etmoqda</Badge>}
+                        ? <Badge variant="success">{t.examResults.statusCompleted}</Badge>
+                        : <Badge variant="warning">{t.examResults.statusInProgress}</Badge>}
                     </TableCell>
                     <TableCell>{r.correct} / {r.totalQuestions}</TableCell>
                     <TableCell className="w-48">
@@ -113,7 +113,7 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
                     <TableCell className="text-muted-foreground text-xs">{formatDate(r.startedAt)}</TableCell>
                     <TableCell className="text-right">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={`/teacher/exams/${r.exam.id}/results`}>Imtihon</Link>
+                        <Link href={`/teacher/exams/${r.exam.id}/results`}>{t.exam}</Link>
                       </Button>
                     </TableCell>
                   </TableRow>

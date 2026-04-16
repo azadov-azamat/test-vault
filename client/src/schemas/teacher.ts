@@ -1,4 +1,11 @@
 import * as Yup from "yup";
+import type { Translations } from "@/i18n/translations";
+
+export function createStudentSchemaI18n(t: Translations) {
+  return Yup.object({
+    fullName: Yup.string().trim().min(2, t.validation.minChars(2)).required(t.validation.fioRequired),
+  });
+}
 
 export const createStudentSchema = Yup.object({
   fullName: Yup.string().trim().min(2, "Kamida 2 ta belgi").required("F.I.O kiritilishi shart"),

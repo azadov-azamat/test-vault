@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/i18n/context";
 import { getVariants } from "@/api/exams";
 import { startExam } from "@/api/sessions";
 import { extractError } from "@/lib/api";
@@ -18,10 +19,11 @@ import { formatDate } from "@/lib/utils";
 export default function VariantsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLang();
   const { data, isLoading } = useQuery({
     queryKey: ["variants", params.id],
     queryFn: () => getVariants(params.id),
-    refetchInterval: 30_000, // har 30 soniyada holat yangilanadi (startsAt, frozen)
+    refetchInterval: 30_000,
   });
 
   const startMutation = useMutation({
@@ -37,7 +39,7 @@ export default function VariantsPage({ params }: { params: { id: string } }) {
       );
       router.push(`/student/exams/${params.id}/take/${res.sessionId}`);
     },
-    onError: (e) => toast({ variant: "destructive", title: "Boshlash mumkin emas", description: extractError(e) }),
+    onError: (e) => toast({ variant: "destructive", title: t.studentVariants.cannotStart, description: extractError(e) }),
   });
 
   const isFrozen = data?.exam.isFrozen;
@@ -49,13 +51,13 @@ export default function VariantsPage({ params }: { params: { id: string } }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/student/exams"><ArrowLeft className="h-4 w-4" /> Imtihonlar</Link>
+          <Link href="/student/exams"><ArrowLeft className="h-4 w-4" /> {t.exams}</Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">{data?.exam.title || "Yuklanmoqda..."}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{data?.exam.title || t.loading}</h1>
         <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
           {durationMinutes && (
             <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" /> {durationMinutes} daqiqa
+              <Clock className="h-3.5 w-3.5" /> {durationMinutes} {t.minute}
             </span>
           )}
           {startsAt && (
@@ -69,17 +71,17 @@ export default function VariantsPage({ params }: { params: { id: string } }) {
       {isFrozen && (
         <Alert variant="destructive">
           <Lock className="h-4 w-4" />
-          <AlertTitle>Imtihon muzlatilgan</AlertTitle>
-          <AlertDescription>Hozircha bu imtihonga kirish mumkin emas. Keyinroq urinib ko'ring.</AlertDescription>
+          <AlertTitle>{t.studentVariants.frozenTitle}</AlertTitle>
+          <AlertDescription>{t.studentVariants.frozenDescription}</AlertDescription>
         </Alert>
       )}
 
       {!isFrozen && notStartedYet && startsAt && (
         <Alert>
           <CalendarClock className="h-4 w-4" />
-          <AlertTitle>Imtihon hali boshlanmagan</AlertTitle>
+          <AlertTitle>{t.studentVariants.notStartedTitle}</AlertTitle>
           <AlertDescription>
-            Boshlanish vaqti: <b>{formatDate(startsAt)}</b>
+            {t.studentVariants.notStartedDescription(formatDate(startsAt))}
           </AlertDescription>
         </Alert>
       )}
@@ -97,17 +99,17 @@ export default function VariantsPage({ params }: { params: { id: string } }) {
               <Card key={v.variantNumber} className={completed ? "border-emerald-500/50 bg-emerald-50/30" : undefined}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <CardTitle>Variant {v.variantNumber}</CardTitle>
-                    {completed && <Badge variant="success"><CheckCircle2 className="h-3 w-3 mr-1" /> Topshirilgan</Badge>}
-                    {!completed && v.hasActiveSession && <Badge variant="warning">Davom etmoqda</Badge>}
+                    <CardTitle>{t.variant} {v.variantNumber}</CardTitle>
+                    {completed && <Badge variant="success"><CheckCircle2 className="h-3 w-3 mr-1" /> {t.studentVariants.submitted}</Badge>}
+                    {!completed && v.hasActiveSession && <Badge variant="warning">{t.examResults.statusInProgress}</Badge>}
                   </div>
-                  <CardDescription>{v.questionCount} ta savol</CardDescription>
+                  <CardDescription>{t.studentVariants.nQuestions(v.questionCount)}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {completed ? (
                     <Button asChild className="w-full" variant="outline">
                       <Link href={`/student/sessions/${v.completedSessionId}/result`}>
-                        <Trophy className="h-4 w-4" /> Natijamni ko'rish
+                        <Trophy className="h-4 w-4" /> {t.studentVariants.viewResult}
                       </Link>
                     </Button>
                   ) : (
@@ -117,7 +119,7 @@ export default function VariantsPage({ params }: { params: { id: string } }) {
                       onClick={() => startMutation.mutate(v.variantNumber)}
                     >
                       <Play className="h-4 w-4" />
-                      {v.hasActiveSession ? "Davom ettirish" : "Boshlash"}
+                      {v.hasActiveSession ? t.studentVariants.continueExam : t.studentVariants.start}
                     </Button>
                   )}
                 </CardContent>

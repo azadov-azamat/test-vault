@@ -312,9 +312,22 @@ const uz = {
     startedAt: (date: string) => `Boshlangan: ${date}`,
     finishedAt: (date: string) => `Yakunlangan: ${date}`,
   },
-} as const;
+};
 
-const ru: typeof uz = {
+type TranslationShape<T> = {
+  [K in keyof T]:
+    T[K] extends (...args: infer Args) => unknown
+      ? (...args: Args) => string
+      : T[K] extends string
+        ? string
+        : T[K] extends object
+          ? TranslationShape<T[K]>
+          : T[K];
+};
+
+export type Translations = TranslationShape<typeof uz>;
+
+const ru: Translations = {
   // Common
   loading: "Загрузка...",
   cancel: "Отмена",
@@ -630,7 +643,6 @@ const ru: typeof uz = {
   },
 };
 
-export type Translations = typeof uz;
 export type Lang = "uz" | "ru";
 
 export const translations: Record<Lang, Translations> = { uz, ru };
